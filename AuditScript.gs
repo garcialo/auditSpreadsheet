@@ -2,7 +2,7 @@ var auditSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 var checklistSheet = auditSpreadsheet.getSheetByName("Checklist");
 var detailsSheet = auditSpreadsheet.getSheetByName("Details");
 var scopeSheet = auditSpreadsheet.getSheetByName("Scope");
-var folderID = '1j24G3roDm8ySrkg4NvHL--__6ZNTm9Hk'; // set to ID of the folder ex. https://drive.google.com/drive/folders/<id of folder>
+var folderID = ''; // set to ID of the folder ex. https://drive.google.com/drive/folders/<id of folder>
 
 function onOpen() {
   setAuditTypes();
@@ -11,14 +11,10 @@ function onOpen() {
 
 function createUI() {
   var ui = SpreadsheetApp.getUi();
-  
-  if (folderID !== '') {
-    ui.createMenu(folderID)
-      .addItem('Copy to Directory', 'copyToAuditDirectory');
-  }
+
   ui.createMenu('Audit')
-    .addItem('Create checklists from Scope', 'createChecklists')
 //    .addItem('Copy to Directory', 'copyToAuditDirectory')
+    .addItem('Create checklists from Scope', 'createChecklists')
     .addToUi();
 }
 
