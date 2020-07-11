@@ -98,20 +98,6 @@ function createAllIssuesSheet() {
   allIssuesSheet.protect().setWarningOnly(true);
 }
 
-/*
-createAllIssuesSheet pseudo code
-
-1. create sheet and format it
-  * set headings
-  * freeze first row
-2. iterate through all sheets
-  if sheetname ends in " | checklist" && B1 is "Status"
-    iterate through all rows in the current sheet
-      if status row is neither "Pass" nor "Not Applicable"
-        append current range to next all issues sheet row
-
-*/
-
 function createChecklists() {
   // make a copy of the checklist we can safely modify for bulk duplicating
   checklistSheet.copyTo(auditSpreadsheet).setName("Checklist Template");
