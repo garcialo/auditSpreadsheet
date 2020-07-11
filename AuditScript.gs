@@ -210,7 +210,7 @@ function copyToAuditFolder() {
   if (response.getSelectedButton() == ui.Button.OK) {
     var fileName = response.getResponseText();
     var auditSpreadsheetID = auditSpreadsheet.getId();
-    var auditFolderID = '1j24G3roDm8ySrkg4NvHL--__6ZNTm9Hk'; // set to ID of shared folder everyone should save Audits to ex. https://drive.google.com/drive/folders/<id of folder>
+    var auditFolderID = ''; // set to ID of shared folder everyone should save Audits to ex. https://drive.google.com/drive/folders/<id of folder>
     var folder = DriveApp.getFolderById(auditFolderID);
 
     DriveApp.getFileById(auditSpreadsheetID).makeCopy(fileName, folder);
