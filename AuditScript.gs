@@ -2,7 +2,6 @@ var auditSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 var checklistSheet = auditSpreadsheet.getSheetByName("Checklist");
 var detailsSheet = auditSpreadsheet.getSheetByName("Details");
 var scopeSheet = auditSpreadsheet.getSheetByName("Scope");
-var folderID = ''; // set to ID of the folder ex. https://drive.google.com/drive/folders/<id of folder>
 
 function onOpen() {
   setAuditTypes();
@@ -13,10 +12,105 @@ function createUI() {
   var ui = SpreadsheetApp.getUi();
 
   ui.createMenu('Audit')
-//    .addItem('Copy to Directory', 'copyToAuditDirectory')
     .addItem('Create checklists from Scope', 'createChecklists')
+    .addItem('Save to Audit Folder', 'copyToAuditFolder')
+    .addItem('Create All Issues sheet', 'createAllIssuesSheet')
     .addToUi();
 }
+
+function createAllIssuesSheet() {
+  // create list of all issues from all checklist sheets
+  var allSheets = auditSpreadsheet.getSheets();
+  var allIssuesArray = [];
+
+  for (var i = 0; i < allSheets.length; i++) {
+    var currentSheet = allSheets[i];
+    if (currentSheet.getName().includes(" | checklist") && currentSheet.getRange('B1').getValue() === 'Status') { 
+      var currentRange = currentSheet.getDataRange();
+      var numRows = currentRange.getLastRow() - 1; // -1 because we're starting on the second row
+      var numColumns = 5; // 
+      
+      var issuesRange = currentSheet.getRange(2,1, numRows, numColumns);
+      var issuesValues = issuesRange.getValues();
+      
+      for (var j = 0; j < numRows; j++) {
+        var statusCell = issuesValues[j][1];
+        var issueCell = issuesValues[j][2];
+
+        if ((statusCell === 'Check Incomplete' || statusCell === 'Fail' || statusCell === 'Notes / Other') && issueCell !== '') {
+          var trackerCell = issuesValues[j][0];
+          var descriptionCell = issuesValues[j][4];
+          var currentSheetName = currentSheet.getName().slice(0,-12); // cut " | checklist" off of the sheet name
+
+          var output = [trackerCell, statusCell, issueCell, descriptionCell , currentSheetName];
+          allIssuesArray.push(output);
+        }
+      }
+    }
+  }
+  
+  // create All Issues sheet
+  var allIssuesSheet = '';
+  
+  var potentialSheet = auditSpreadsheet.getSheetByName('All Issues');
+  if (potentialSheet == null) {
+    allIssuesSheet = auditSpreadsheet.insertSheet('All Issues',1);
+    allIssuesSheet.getRange(1, 1, 1, 5).setValues([["Issue Tracker", "Status", "Issue", "Description", "Page or Component"]]);
+  }
+  else {
+    allIssuesSheet = auditSpreadsheet.getSheetByName("All Issues");
+  }
+
+  // add list of all issues to the All Issues sheet
+  numRows = allIssuesArray.length;
+  numColumns = 5;
+  allIssuesSheet.getRange(2,1, numRows, numColumns).setValues(allIssuesArray);
+  
+  // freeze first row
+  allIssuesSheet.setFrozenRows(1);
+  
+  // bold first row
+  allIssuesSheet.getRange("'All Issues'!A1:E1").setFontWeight("bold");
+  
+  //set wrapping on Description
+  var allIssuesDescriptionColumn = allIssuesSheet.getRange("D1:D"); // change this to Description column in All Issues
+  allIssuesDescriptionColumn.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+  
+  // set font size on sheet
+  var allIssuesEntireSheetRange = allIssuesSheet.getRange("'All Issues'!1:1000");
+  allIssuesEntireSheetRange.setFontSize(12);
+  
+  // set font color for entire sheet to ?? - probably need to "get" it from another sheet
+  allIssuesEntireSheetRange.setFontColor("#434343");
+    
+  //set bg color, but only for data range
+  var allIssuesDataRange = allIssuesSheet.getDataRange();
+  allIssuesDataRange.setBackground("#FFF2CC");
+  
+  // column sizes - doing this last because of autoresizing
+  allIssuesSheet.setColumnWidth(1, 130); // "Issue Tracker"
+  allIssuesSheet.autoResizeColumn(2); // "Status"
+  allIssuesSheet.setColumnWidth(3, 130); // "Issues"
+  allIssuesSheet.setColumnWidth(4, 510); // "Description"
+  allIssuesSheet.autoResizeColumn(5); // "Page or Component"
+  
+  // protect sheet
+  allIssuesSheet.protect().setWarningOnly(true);
+}
+
+/*
+createAllIssuesSheet pseudo code
+
+1. create sheet and format it
+  * set headings
+  * freeze first row
+2. iterate through all sheets
+  if sheetname ends in " | checklist" && B1 is "Status"
+    iterate through all rows in the current sheet
+      if status row is neither "Pass" nor "Not Applicable"
+        append current range to next all issues sheet row
+
+*/
 
 function createChecklists() {
   // make a copy of the checklist we can safely modify for bulk duplicating
@@ -59,10 +153,8 @@ function createChecklists() {
   .setHiddenValues(['FALSE'])
   .build()
   checklistTemplateSheet.getFilter().setColumnFilterCriteria(filterColumn, auditFilterCriteria);
-  
    
   // creating a Checklist sheet for each row in the "Scope" sheet
-
   scopeRange = scopeSheet.getDataRange();
   scopeData = scopeRange.getValues();
   lastRow = scopeRange.getLastRow();
@@ -75,13 +167,22 @@ function createChecklists() {
     
     var newSheetName = name + appendToName;
     
-    var potentialSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(newSheetName);
+    var potentialSheet = auditSpreadsheet.getSheetByName(newSheetName);
     if (potentialSheet == null) {
       checklistTemplateSheet.copyTo(auditSpreadsheet).setName(newSheetName); // creates duplicate of checklist and rename
     }    
   }
   
+  // delete the template sheet since it's no longer needed
   auditSpreadsheet.deleteSheet(checklistTemplateSheet);
+  
+  // moving Checklist to the end since it's not needed as much now
+  var lastSheetPosition = auditSpreadsheet.getNumSheets();
+  checklistSheet.activate();
+  auditSpreadsheet.moveActiveSheet(lastSheetPosition);
+  
+  // activating Scope - eventually should have links to the created sheets
+  scopeSheet.activate();
 }
 
 function setAuditTypes() {  
@@ -101,15 +202,16 @@ function setAuditTypes() {
   auditTypeCell.setDataValidation(auditTypeValidation);
 }
 
-function copyToAuditDirectory() {
+// look into finding a way to move the current file instead of just making a copy every single time
+function copyToAuditFolder() {
   var ui = SpreadsheetApp.getUi();
   var response = ui.prompt('Copy Audit Spreadsheet', 'Name', ui.ButtonSet.OK_CANCEL);
   
   if (response.getSelectedButton() == ui.Button.OK) {
     var fileName = response.getResponseText();
-    var auditSpreadsheetID = SpreadsheetApp.getActiveSpreadsheet().getId();
-    //var folderID = ''; // set to ID of the folder ex. https://drive.google.com/drive/folders/<id of folder>
-    var folder = DriveApp.getFolderById(folderID);
+    var auditSpreadsheetID = auditSpreadsheet.getId();
+    var auditFolderID = '1j24G3roDm8ySrkg4NvHL--__6ZNTm9Hk'; // set to ID of shared folder everyone should save Audits to ex. https://drive.google.com/drive/folders/<id of folder>
+    var folder = DriveApp.getFolderById(auditFolderID);
 
     DriveApp.getFileById(auditSpreadsheetID).makeCopy(fileName, folder);
   }
