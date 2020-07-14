@@ -37,7 +37,16 @@ function createAllIssuesSheet() {
         var statusCell = issuesValues[j][1];
         var issueCell = issuesValues[j][2];
 
-        if ((statusCell === 'Check Incomplete' || statusCell === 'Fail' || statusCell === 'Notes / Other') && issueCell !== '') {
+        // determine when to add issues to the list
+        /*
+        - pass: do not add to list
+        - n/a:  do not add to list
+        - fail: add to list
+        - incomplete and has notes:  add to list
+        - notes/other and has notes: add to list
+        */
+        if ((statusCell === 'Fail') ||
+            (statusCell === 'Check Incomplete' || statusCell === 'Notes / Other') && issueCell !== '') {
           var trackerCell = issuesValues[j][0];
           var descriptionCell = issuesValues[j][4];
           var currentSheetName = currentSheet.getName().slice(0,-12); // cut " | checklist" off of the sheet name
@@ -49,53 +58,60 @@ function createAllIssuesSheet() {
     }
   }
   
-  // create All Issues sheet
-  var allIssuesSheet = '';
+  // create All Issues sheet if the list of issues actually has issues
+  if (allIssuesArray.length > 0) {
+    var allIssuesSheet = '';
   
-  var potentialSheet = auditSpreadsheet.getSheetByName('All Issues');
-  if (potentialSheet == null) {
-    allIssuesSheet = auditSpreadsheet.insertSheet('All Issues',1);
-    allIssuesSheet.getRange(1, 1, 1, 5).setValues([["Issue Tracker", "Status", "Issue", "Description", "Page or Component"]]);
+    var potentialSheet = auditSpreadsheet.getSheetByName('All Issues');
+    if (potentialSheet == null) {
+      allIssuesSheet = auditSpreadsheet.insertSheet('All Issues',1);
+      allIssuesSheet.getRange(1, 1, 1, 5).setValues([["Issue Tracker", "Status", "Issue", "Description", "Page or Component"]]);
+    }
+    else {
+      allIssuesSheet = auditSpreadsheet.getSheetByName("All Issues");
+    }
+  
+    // freeze first row
+    allIssuesSheet.setFrozenRows(1);
+   
+    // bold first row
+    allIssuesSheet.getRange("'All Issues'!A1:E1").setFontWeight("bold");
+  
+    //set wrapping on Description
+    var allIssuesDescriptionColumn = allIssuesSheet.getRange("D1:D"); // change this to Description column in All Issues
+    allIssuesDescriptionColumn.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+  
+    // set font size on sheet
+    var allIssuesEntireSheetRange = allIssuesSheet.getRange("'All Issues'!1:1000");
+    allIssuesEntireSheetRange.setFontSize(12);
+  
+    // set font color for entire sheet
+    allIssuesEntireSheetRange.setFontColor("#434343");
+
+    // column sizes - setting non-auto column sizes
+    allIssuesSheet.setColumnWidth(1, 130); // "Issue Tracker"
+    allIssuesSheet.setColumnWidth(3, 130); // "Issues"
+    allIssuesSheet.setColumnWidth(4, 510); // "Description"
+    
+    // add list of all issues to the All Issues sheet
+    numRows = allIssuesArray.length;
+    numColumns = 5;
+    allIssuesSheet.getRange(2,1, numRows, numColumns).setValues(allIssuesArray);
+    
+    //set bg color, but only for data range
+    var allIssuesDataRange = allIssuesSheet.getDataRange();
+    allIssuesDataRange.setBackground("#FFF2CC");
+  
+    // column sizes - setting autoresized columns
+    allIssuesSheet.autoResizeColumn(2); // "Status"
+    allIssuesSheet.autoResizeColumn(5); // "Page or Component"
+  
+    // protect sheet
+    allIssuesSheet.protect().setWarningOnly(true);
   }
   else {
-    allIssuesSheet = auditSpreadsheet.getSheetByName("All Issues");
+    SpreadsheetApp.getUi().alert("No issues found in page/component checklists");
   }
-
-  // add list of all issues to the All Issues sheet
-  numRows = allIssuesArray.length;
-  numColumns = 5;
-  allIssuesSheet.getRange(2,1, numRows, numColumns).setValues(allIssuesArray);
-  
-  // freeze first row
-  allIssuesSheet.setFrozenRows(1);
-  
-  // bold first row
-  allIssuesSheet.getRange("'All Issues'!A1:E1").setFontWeight("bold");
-  
-  //set wrapping on Description
-  var allIssuesDescriptionColumn = allIssuesSheet.getRange("D1:D"); // change this to Description column in All Issues
-  allIssuesDescriptionColumn.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-  
-  // set font size on sheet
-  var allIssuesEntireSheetRange = allIssuesSheet.getRange("'All Issues'!1:1000");
-  allIssuesEntireSheetRange.setFontSize(12);
-  
-  // set font color for entire sheet to ?? - probably need to "get" it from another sheet
-  allIssuesEntireSheetRange.setFontColor("#434343");
-    
-  //set bg color, but only for data range
-  var allIssuesDataRange = allIssuesSheet.getDataRange();
-  allIssuesDataRange.setBackground("#FFF2CC");
-  
-  // column sizes - doing this last because of autoresizing
-  allIssuesSheet.setColumnWidth(1, 130); // "Issue Tracker"
-  allIssuesSheet.autoResizeColumn(2); // "Status"
-  allIssuesSheet.setColumnWidth(3, 130); // "Issues"
-  allIssuesSheet.setColumnWidth(4, 510); // "Description"
-  allIssuesSheet.autoResizeColumn(5); // "Page or Component"
-  
-  // protect sheet
-  allIssuesSheet.protect().setWarningOnly(true);
 }
 
 function createChecklists() {
