@@ -1,19 +1,19 @@
 /*
   Audit Spreadsheet, Accessibility Audit Checklist
-  Copyright (C) 2017-2020  Luis Garcia
+  Copyright (C) 2017-2021  Luis Garcia
   Contact: audit@garcialo.com
   URL: http://audit.garcialo.com
-
+  
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
-
+  
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-
+  
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
@@ -33,8 +33,8 @@ function createUI() {
 
   ui.createMenu('Audit')
     .addItem('Create checklists from Scope', 'createChecklists')
-    .addItem('Save to Audit Folder', 'copyToAuditFolder')
     .addItem('Create All Issues sheet', 'createAllIssuesSheet')
+    .addItem('Add custom audit type', 'addCustomAuditType')
     .addToUi();
 }
 
@@ -205,6 +205,22 @@ function createChecklists() {
   
   // activating Scope - eventually should have links to the created sheets
   scopeSheet.activate();
+}
+
+function addCustomAuditType() {
+  var ui = SpreadsheetApp.getUi();
+  var newCustomAuditName = ui.prompt('New Custom Audit', 'Name', ui.ButtonSet.OK_CANCEL);
+
+  checklistSheet.insertColumnAfter(14); // 14 = column N (Audit - Full)
+  var newAuditColumnHeader = checklistSheet.getRange("O1")
+  newAuditColumnHeader.setValue("Audit - " + newCustomAuditName.getResponseText());
+
+  var fullAuditRange = checklistSheet.getRange(2, 14, checklistSheet.getMaxRows() - 1, 1);
+  fullAuditRange.copyTo(checklistSheet.getRange(2, 15));
+  checklistSheet.autoResizeColumn(15);
+
+  setAuditTypes();
+  newAuditColumnHeader.activate();
 }
 
 function setAuditTypes() {  
