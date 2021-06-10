@@ -3,6 +3,7 @@
   Copyright (C) 2017-2021  Luis Garcia
   Contact: audit@garcialo.com
   URL: http://audit.garcialo.com
+  GitHub Repo: https://github.com/garcialo/auditSpreadsheet
   
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
